@@ -1,0 +1,53 @@
+user=> (time (in-tx (dotimes [_ 10000] (create {:a 1}))))
+"Elapsed time: 574.66 msecs"
+user=> (count (all-nodes))
+40006
+user=> (time (in-tx (dotimes [n 20000] (relate (node n) (node (inc n)) :type))))
+"Elapsed time: 2579.487 msecs"
+nil
+user=> (count (all-rels))
+20000
+
+
+((shortest-path-finder :type :out 10) (root) (node 5))
+(single-path (shortest-path-finder :type :out 15) (root) (node 5))
+
+; destructing as means of reaching into a path
+user=> (let [[n1 _ n2 _ _ r3] (single-path (shortest-path-finder :type :out 15) (root) (node 5))] (println n1 n2 r3))
+#<NodeProxy Node[0]> #<NodeProxy Node[1]> #<RelationshipProxy Relationship[2]>
+
+
+Node as Map
+# http://clojure.github.com/clojure/clojure.core-api.html#clojure.core/reify
+
+(def x (let [n (root)] (reify clojure.lang.ILookup (valAt [this key] (.getProperty n key)) (valAt [this key fallback] (.getProperty n key fallback)))))
+
+# works
+(def x (let [n (root)] (reify clojure.lang.IFn (invoke [this key] (.getProperty n key nil)) )))
+
+(defn node-proxy [n]
+	(proxy [clojure.lang.IFn clojure.lang.ILookup org.neo4j.graphdb.Node] []
+   	  (invoke [key] (.getProperty n key nil))
+      (valAt 
+		([key] (.getProperty n key))
+		([key fallback] (.getProperty n key fallback)))
+))
+
+; drop for skip
+(take 10
+(sort-by #(:n %) 
+(distinct
+  (for [n (nodes 1 2) 
+        m (lookup :index :key value) 
+        r (rels n {:type :out})] 
+;       [_ r _] (match n {:type :out} m)] 
+;       [_ r _] (path n {:type :out} m)] 
+   :where (> ((props r) "cost") 10) 
+   {:n n :r r}))))
+
+; clojure based path impl, with filter for nodes(), relationships(), etc
+; probably even with lazy sequences on for comprehensions
+
+
+; -> macro inverts the inside out form (Date. (.nextInt (Random.)))
+; (-> (Random.) (.nextInt) (Date.))
