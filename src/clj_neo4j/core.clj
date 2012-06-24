@@ -56,7 +56,7 @@
 
 (defn lookup [index key value]
 	(let [index (.forNodes (:index @neo) (string/as-str index))]
-		(seq (.query index (string/as-str key) (string/as-str value)))
+		(.query index (string/as-str key) (string/as-str value))
     )
 )
 
@@ -146,8 +146,8 @@
 (defn clean-db []
    (in-tx
    	  (let [r (root)
-      	    rels (count (map delete all-rels))
-      	    nodes (count (map delete (filter #(not= r %) all-nodes)))]
+      	    rels (count (map delete (all-rels)))
+      	    nodes (count (map delete (filter #(not= r %) (all-nodes))))]
             (dorun (map #(prop r % nil) (prop-names r)))
       {:nodes nodes :rels rels}
 	  )

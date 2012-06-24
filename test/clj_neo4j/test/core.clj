@@ -15,16 +15,16 @@
 (use-fixtures :once once-fixture)
 (use-fixtures :each each-fixture)
 
-(deftest root-node 
+(deftest test-root-node 
   (is (= 0 (id (root))) "Root node with id 0"))
 
-(deftest root-node-lookup 
+(deftest test-root-node-lookup 
   (is (= (root) (node 0)) "Node by id lookup root"))
 
-(deftest root-node-props 
+(deftest test-root-node-props 
   (is (= {} (props (root))) "Root node with no props"))
 
-(deftest create-node
+(deftest test-create-node
   (let [n (in-tx (create {:a 1 "b" "b" :c true}))]
 	(assert-predicate (and (= 1 (id n)) (= {"a" 1 "b" "b" "c" true} (props n ))) "node created")
   )
@@ -32,9 +32,9 @@
 )
 
 (defn test-rel []
-  (in-tx (relate (root) (create {:a 1}) :type {:r 1}))
+  (let [[_ r _] (in-tx (relate (root) (create {:a 1}) :type {:r 1}))] r)
 )
-(deftest create-rel
+(deftest test-create-rel
   (let [r (test-rel)]
 	(assert-predicate 
 	  (and (= 0 (id r)) 
@@ -46,11 +46,37 @@
   (is (= 1 (count (all-rels))) "Created relationship")
 )
 
-(deftest get-rel 
-  (test-rel)
-  (is (rel? (rel 0)))
+(deftest test-get-rel 
+  (let [r (test-rel)]
+  	(is (rel? (rel (id r))))
+  )
 )
 
-(deftest set-prop
+(deftest test-set-prop
   (is (= {"key" "value"} (props (in-tx (prop (root) :key "value")))) "property set")
+)
+
+(deftest test-set-multiple-prop
+  (in-tx (set-props (root) {:a 1 :b "b" :c true}))
+  (let [p (props (root))]
+    (println (str "PROPS" props))
+  	(is (= (list "a" "b" "c") (keys p)) "property set")
+  	(is (= {"a" 1 "b" "b" "c" true} p) "property set")
+  )
+)
+
+(deftest test-index-add
+   (in-tx (index-add (root) :index :key :value))
+   (is (= (root) (first (lookup :index :key :value)))) ; don't do that, use lookup-single
+)
+
+(deftest test-lookup-single
+   (in-tx (index-add (root) :index :key :value))
+;   (is (= (root) (lookup-single :index :key :value)))
+)
+
+(deftest test-predicates
+  (test-rel)
+  (is (node? (root)))
+  (is (rel? (first (all-rels))))
 )
